@@ -19,6 +19,21 @@ LC_NUMERIC=C
 # VERSION
 padd_version="3.1"
 
+# TEMPORARY FILES
+file_padd_pid=.padd.pid
+file_piHoleVersion=.piHoleVersion
+
+padd_dir=$( dirname "${BASH_SOURCE[0]}" )
+ # create files in same directory as padd.sh
+if [[ -w "${padd_dir}" ]]; then
+  file_padd_pid=${padd_dir}/${file_padd_pid}
+  file_piHoleVersion=${padd_dir}/${file_piHoleVersion}
+# create files in user's home directory
+else                            
+  file_padd_pid=~/${file_padd_pid}
+  file_piHoleVersion=~/${file_piHoleVersion}
+fi
+
 # DATE
 today=$(date +%Y%m%d)
 
@@ -49,7 +64,7 @@ check_box_question="[${yellow_text}?${reset_text}]"  # Question / ?
 check_box_info="[${yellow_text}i${reset_text}]"      # Info / i
 
 # PICO STATUSES
-pico_status_ok="${check_box_good} Sys. OK"
+pico_status_ok="${check_box_good} System OK"
 pico_status_update="${check_box_info} Update"
 pico_status_hot="${check_box_bad} Sys. Hot!"
 pico_status_off="${check_box_bad} Offline"
@@ -67,8 +82,8 @@ mini_status_dns_down="${check_box_bad} DNS off!"
 mini_status_unknown="${check_box_question} Status unknown"
 
 # REGULAR STATUS
-full_status_ok="${check_box_good} System is healthy."
-full_status_update="${check_box_info} Updates are available."
+full_status_ok="${check_box_good} System is healthy"
+full_status_update="${check_box_info} Updates are available"
 full_status_hot="${check_box_bad} System is hot!"
 full_status_off="${check_box_bad} Pi-hole is offline"
 full_status_ftl_down="${check_box_info} FTL is down!"
@@ -76,13 +91,13 @@ full_status_dns_down="${check_box_bad} DNS is off!"
 full_status_unknown="${check_box_question} Status unknown!"
 
 # MEGA STATUS
-mega_status_ok="${check_box_good} Your system is healthy."
-mega_status_update="${check_box_info} Updates are available."
+mega_status_ok="${check_box_good} Your system is healthy"
+mega_status_update="${check_box_info} Updates are available"
 mega_status_hot="${check_box_bad} Your system is hot!"
-mega_status_off="${check_box_bad} Pi-hole is off-line."
-mega_status_ftl_down="${check_box_info} FTLDNS service is not running."
+mega_status_off="${check_box_bad} Pi-hole is off-line!"
+mega_status_ftl_down="${check_box_info} FTLDNS service is not running!"
 mega_status_dns_down="${check_box_bad} Pi-hole's DNS server is off!"
-mega_status_unknown="${check_box_question} Unable to determine Pi-hole status."
+mega_status_unknown="${check_box_question} Unable to determine Pi-hole status"
 
 # Text only "logos"
 padd_text="${green_text}${bold_text}PADD${reset_text}"
@@ -96,14 +111,6 @@ padd_logo_3="${bold_text}${green_text}|   /--\\|__/|__/  ${reset_text}"
 padd_logo_retro_1="${bold_text} ${yellow_text}_${green_text}_      ${blue_text}_   ${yellow_text}_${green_text}_   ${reset_text}"
 padd_logo_retro_2="${bold_text}${yellow_text}|${green_text}_${blue_text}_${cyan_text}) ${red_text}/${yellow_text}\\ ${blue_text}|  ${red_text}\\${yellow_text}|  ${cyan_text}\\  ${reset_text}"
 padd_logo_retro_3="${bold_text}${green_text}|   ${red_text}/${yellow_text}-${green_text}-${blue_text}\\${cyan_text}|${magenta_text}_${red_text}_${yellow_text}/${green_text}|${blue_text}_${cyan_text}_${magenta_text}/  ${reset_text}"
-
-# old script Pi-hole logos - regular and retro
-pihole_logo_script_1="${bold_text}${green_text}.-..   .      .      ${reset_text}"
-pihole_logo_script_2="${bold_text}${green_text}|-'. - |-. .-.| .-,  ${reset_text}"
-pihole_logo_script_3="${bold_text}${green_text}'  '   ' '-\`-''-\`'-  ${reset_text}"
-pihole_logo_script_retro_1="${red_text}.${yellow_text}-${green_text}.${blue_text}.   ${green_text}.      ${magenta_text}.      ${reset_text}"
-pihole_logo_script_retro_2="${yellow_text}|${green_text}-${blue_text}'${magenta_text}. ${yellow_text}- ${blue_text}|${magenta_text}-${red_text}. ${green_text}.${blue_text}-${magenta_text}.${red_text}| ${green_text}.${blue_text}-${magenta_text},  ${reset_text}"
-pihole_logo_script_retro_3="${green_text}'  ${red_text}'   ${magenta_text}' ${yellow_text}'${green_text}-${blue_text}\`${magenta_text}-${red_text}'${yellow_text}'${green_text}-${blue_text}\`${magenta_text}'${red_text}-  ${reset_text}"
 
 ############################################# GETTERS ##############################################
 
@@ -415,14 +422,24 @@ GetPiholeInformation() {
     ftl_cpu="$(ps -p "${ftlPID}" -o %cpu | tail -n1 | tr -d '[:space:]')"
     ftl_mem_percentage="$(ps -p "${ftlPID}" -o %mem | tail -n1 | tr -d '[:space:]')"
   fi
+
+  # Memory use, heatmap and bar
+  ftl_cpu_heatmap=$(HeatmapGenerator "${ftl_cpu}")
+  ftl_mem_heatmap=$(HeatmapGenerator "${ftl_mem_percentage}")
+
+  #  Bar generations
+  if [ "$1" = "" ]; then
+    ftl_cpu_bar=$(BarGenerator "${ftl_cpu}" 10)
+    ftl_mem_bar=$(BarGenerator "${ftl_mem}_percentage" 10)
+  fi
 }
 
 GetVersionInformation() {
   # Check if version status has been saved
-  if [ -e "piHoleVersion" ]; then # the file exists...
+  if [ -e "${file_piHoleVersion}" ]; then # the file exists...
     # the file exits, use it
     # shellcheck disable=SC1091
-    source piHoleVersion
+    source ${file_piHoleVersion}
 
     # Today is...
     today=$(date +%Y%m%d)
@@ -430,7 +447,7 @@ GetVersionInformation() {
     # was the last check today?
     if [ "${today}" != "${last_check}" ]; then # no, it wasn't today
       # Remove the Pi-hole version file...
-      rm -f piHoleVersion
+      rm -f ${file_piHoleVersion}
     fi
 
   else # the file doesn't exist, create it...
@@ -533,7 +550,7 @@ GetVersionInformation() {
     fi
 
     # write it all to the file
-    echo "last_check=${today}" > ./piHoleVersion
+    echo "last_check=${today}" > ${file_piHoleVersion}
     {
       echo "core_version=$core_version"
       echo "core_version_heatmap=$core_version_heatmap"
@@ -554,9 +571,7 @@ GetVersionInformation() {
       echo "pico_status=\"$pico_status\""
       echo "mini_status_=\"$mini_status_\""
       echo "full_status_=\"$full_status_\""
-    } >> ./piHoleVersion
-
-    # there's a file now
+    } >> ${file_piHoleVersion}
   fi
 }
 
@@ -595,14 +610,13 @@ PrintLogo() {
   elif [[ "$1" = "regular" || "$1" = "slim" ]]; then
     CleanPrintf "${padd_logo_1}\e[0K\\n"
     CleanPrintf "${padd_logo_2}Pi-hole® ${core_version_heatmap}v${core_version}${reset_text}, Web ${web_version_heatmap}v${web_version}${reset_text}, FTL ${ftl_version_heatmap}v${ftl_version}${reset_text}\e[0K\\n"
-    CleanPrintf "${padd_logo_3}PADD ${padd_version_heatmap}v${padd_version}${reset_text}${full_status_}${reset_text}\e[0K\\n"
+    CleanPrintf "${padd_logo_3}PADD ${padd_version_heatmap}v${padd_version}${reset_text} ${full_status_}${reset_text}\e[0K\\n"
     CleanEcho ""
   # normal or not defined
   else
     CleanPrintf "${padd_logo_retro_1}\e[0K\\n"
     CleanPrintf "${padd_logo_retro_2}   Pi-hole® ${core_version_heatmap}v${core_version}${reset_text}, Web ${web_version_heatmap}v${web_version}${reset_text}, FTL ${ftl_version_heatmap}v${ftl_version}${reset_text}, PADD ${padd_version_heatmap}v${padd_version}${reset_text}\e[0K\\n"
     CleanPrintf "${padd_logo_retro_3}   ${pihole_check_box} Core  ${ftl_check_box} FTL   ${mega_status}${reset_text}\e[0K\\n"
-
     CleanEcho ""
   fi
 }
@@ -612,12 +626,12 @@ PrintNetworkInformation() {
     CleanEcho "${bold_text}NETWORK ============${reset_text}"
     CleanEcho " Hst: ${pi_hostname}"
     CleanEcho " IP:  ${pi_ip_address}"
-    CleanEcho " DHCP ${dhcp_check_box} IPv6 ${dhcp_ipv6_check_box}"
+    CleanEcho " DHCP:${dhcp_check_box} IPv6 ${dhcp_ipv6_check_box}"
   elif [ "$1" = "nano" ]; then
     CleanEcho "${bold_text}NETWORK ================${reset_text}"
-    CleanEcho " Host: ${pi_hostname}"
-    CleanEcho " IPv4: ${IPV4_ADDRESS}"
-    CleanEcho " DHCP: ${dhcp_check_box}    IPv6: ${dhcp_ipv6_check_box}"
+    CleanEcho " Host:${pi_hostname}"
+    CleanEcho " IPv4:${IPV4_ADDRESS}"
+    CleanEcho " DHCP:${dhcp_check_box}    IPv6: ${dhcp_ipv6_check_box}"
   elif [ "$1" = "micro" ]; then
     CleanEcho "${bold_text}NETWORK ======================${reset_text}"
     CleanEcho " Host:    ${full_hostname}"
@@ -662,7 +676,7 @@ PrintPiholeInformation() {
     :
   elif [ "$1" = "nano" ]; then
     CleanEcho "${bold_text}PI-HOLE ================${reset_text}"
-    CleanEcho " Up:  ${pihole_check_box}      FTL: ${ftl_check_box}"
+    CleanEcho " Up:  ${pihole_check_box}    FTL:  ${ftl_check_box}"
   elif [ "$1" = "micro" ]; then
     CleanEcho "${bold_text}PI-HOLE ======================${reset_text}"
     CleanEcho " Status:  ${pihole_check_box}      FTL:  ${ftl_check_box}"
@@ -681,20 +695,20 @@ PrintPiholeStats() {
   # are we on a tiny screen?
   if [ "$1" = "pico" ]; then
     CleanEcho "${bold_text}PI-HOLE ============${reset_text}"
-    CleanEcho " [${ads_blocked_bar}] ${ads_percentage_today}%"
-    CleanEcho " ${ads_blocked_today} / ${dns_queries_today}"
+    CleanPrintf " [%-10s]%5.1f%%\e[0K\\n" "${ads_blocked_bar}" "${ads_percentage_today}"
+    CleanPrintf " %-5s%-13s\e[0K\\n" "Blk:" "${ads_blocked_today} / ${dns_queries_today}"
   elif [ "$1" = "nano" ]; then
-    CleanEcho " Blk: [${ads_blocked_bar}] ${ads_percentage_today}%"
-    CleanEcho " Blk: ${ads_blocked_today} / ${dns_queries_today}"
+    CleanPrintf " %-5s[%-10s]%5.1f%%\e[0K\\n" "Blk:" "${ads_blocked_bar}" "${ads_percentage_today}"
+    CleanPrintf " %-5s%-18s\e[0K\\n" "Blk:" "${ads_blocked_today} / ${dns_queries_today}"
   elif [ "$1" = "micro" ]; then
     CleanEcho "${bold_text}STATS ========================${reset_text}"
-    CleanEcho " Blckng:  ${domains_being_blocked} domains"
-    CleanEcho " Piholed: [${ads_blocked_bar}] ${ads_percentage_today}%"
-    CleanEcho " Piholed: ${ads_blocked_today} / ${dns_queries_today}"
+    CleanPrintf " %-9s%-20s\e[0K\\n" "Blckng:" "${domains_being_blocked} domains"
+    CleanPrintf " %-9s[%-10s]%6.1f%%\e[0K\\n" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}"
+    CleanPrintf " %-9s%-20s\e[0K\\n" "Piholed:" "${ads_blocked_today} / ${dns_queries_today}"
   elif [ "$1" = "mini" ]; then
     CleanEcho "${bold_text}STATS ==================================${reset_text}"
     CleanPrintf " %-9s%-29s\e[0K\\n" "Blckng:" "${domains_being_blocked} domains"
-    CleanPrintf " %-9s[%-20s] %-5s\e[0K\\n" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}%"
+    CleanPrintf " %-9s[%-20s]%6.1f%%\e[0K\\n" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}"
     CleanPrintf " %-9s%-29s\e[0K\\n" "Piholed:" "${ads_blocked_today} out of ${dns_queries_today}"
     CleanPrintf " %-9s%-29s\e[0K\\n" "Latest:" "${latest_blocked}"
     if [[ "${DHCP_ACTIVE}" != "true" ]]; then
@@ -703,7 +717,7 @@ PrintPiholeStats() {
   elif [[ "$1" = "regular" || "$1" = "slim" ]]; then
     CleanEcho "${bold_text}STATS ======================================================${reset_text}"
     CleanPrintf " %-10s%-49s\e[0K\\n" "Blocking:" "${domains_being_blocked} domains"
-    CleanPrintf " %-10s[%-40s] %-5s\e[0K\\n" "Pi-holed:" "${ads_blocked_bar}" "${ads_percentage_today}%"
+    CleanPrintf " %-10s[%-40s]%5.1f%%\e[0K\\n" "Pi-holed:" "${ads_blocked_bar}" "${ads_percentage_today}"
     CleanPrintf " %-10s%-49s\e[0K\\n" "Pi-holed:" "${ads_blocked_today} out of ${dns_queries_today} queries"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Latest:" "${latest_blocked}"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Top Ad:" "${top_blocked}"
@@ -713,14 +727,14 @@ PrintPiholeStats() {
     fi
   else
     CleanEcho "${bold_text}STATS ==========================================================================${reset_text}"
-    CleanPrintf " %-10s%-19s %-10s[%-40s] %-5s\e[0K\\n" "Blocking:" "${domains_being_blocked} domains" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}%"
+    CleanPrintf " %-10s%-19s %-10s[%-40s]%5.1f%%\e[0K\\n" "Blocking:" "${domains_being_blocked} domains" "Piholed:" "${ads_blocked_bar}" "${ads_percentage_today}"
     CleanPrintf " %-10s%-30s%-29s\e[0K\\n" "Clients:" "${clients}" " ${ads_blocked_today} out of ${dns_queries_today} queries"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Latest:" "${latest_blocked}"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Top Ad:" "${top_blocked}"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Top Dmn:" "${top_domain}"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Top Clnt:" "${top_client}"
     CleanEcho "FTL ============================================================================"
-    CleanPrintf " %-10s%-9s %-10s%-9s %-10s%-9s\e[0K\\n" "PID:" "${ftlPID}" "CPU Use:" "${ftl_cpu}%" "Mem. Use:" "${ftl_mem_percentage}%"
+    CleanPrintf " %-10s%-10s%-10s[${ftl_cpu_heatmap}%-10s${reset_text}]%5.1f%%  %-10s[${ftl_mem_heatmap}%-10s${reset_text}]%5.1f%%\e[0K\\n" "PID:" "${ftlPID}" "CPU Use:" "${ftl_cpu_bar}" "${ftl_cpu}" "Mem. Use:" "${ftl_mem_bar}" "${ftl_mem_percentage}"
     CleanPrintf " %-10s%-69s\e[0K\\n" "DNSCache:" "${cache_inserts} insertions, ${cache_deletes} deletions, ${cache_size} total entries"
   fi
 }
@@ -728,40 +742,32 @@ PrintPiholeStats() {
 PrintSystemInformation() {
   if [ "$1" = "pico" ]; then
     CleanEcho "${bold_text}CPU ================${reset_text}"
-    echo -ne "${ceol} [${cpu_load_1_heatmap}${cpu_bar}${reset_text}] ${cpu_percent}%"
+    CleanPrintf " [${cpu_load_1_heatmap}%-10s${reset_text}]%5.1f%%" "${cpu_bar}" "${cpu_percent}"
   elif [ "$1" = "nano" ]; then
     CleanEcho "${ceol}${bold_text}SYSTEM =================${reset_text}"
-    CleanEcho " Up:  ${system_uptime}"
-    echo -ne  "${ceol} CPU: [${cpu_load_1_heatmap}${cpu_bar}${reset_text}] ${cpu_percent}%"
+    CleanPrintf " %-5s%-18s\e[0K\\n" "Up:" "${system_uptime}"
+    CleanPrintf " %-5s[${cpu_load_1_heatmap}%-10s${reset_text}]%5.1f%%" "CPU:" "${cpu_bar}" "${cpu_percent}"
   elif [ "$1" = "micro" ]; then
     CleanEcho "${bold_text}SYSTEM =======================${reset_text}"
-    CleanEcho " Uptime:  ${system_uptime}"
-    CleanEcho " Load:    [${cpu_load_1_heatmap}${cpu_bar}${reset_text}] ${cpu_percent}%"
-    echo -ne "${ceol} Memory:  [${memory_heatmap}${memory_bar}${reset_text}] ${memory_percent}%"
+    CleanPrintf " %-9s%-19s\e[0K\\n" "Uptime:" "${system_uptime}"
+    CleanPrintf " %-9s[${cpu_load_1_heatmap}%-10s${reset_text}]%6.1f%%\e[0K\\n" "Load:" "${cpu_bar}" "${cpu_percent}"
+    CleanPrintf " %-9s[${memory_heatmap}%-10s${reset_text}]%6.1f%%" "Memory:" "${memory_bar}" "${memory_percent}"
   elif [ "$1" = "mini" ]; then
     CleanEcho "${bold_text}SYSTEM =================================${reset_text}"
     CleanPrintf " %-9s%-29s\e[0K\\n" "Uptime:" "${system_uptime}"
-    CleanEcho " Load:    [${cpu_load_1_heatmap}${cpu_bar}${reset_text}] ${cpu_percent}%"
-    echo -ne "${ceol} Memory:  [${memory_heatmap}${memory_bar}${reset_text}] ${memory_percent}%"
+    CleanPrintf " %-9s[${cpu_load_1_heatmap}%-20s${reset_text}]%6.1f%%\e[0K\\n" "Load:" "${cpu_bar}" "${cpu_percent}"
+    CleanPrintf " %-9s[${memory_heatmap}%-20s${reset_text}]%6.1f%%" "Memory:" "${memory_bar}" "${memory_percent}"
   # else we're not
   elif [[ "$1" = "regular" || "$1" = "slim" ]]; then
     CleanEcho "${bold_text}SYSTEM =====================================================${reset_text}"
-    # Uptime
     CleanPrintf " %-10s%-39s\e[0K\\n" "Uptime:" "${system_uptime}"
-
-    # Temp and Loads
     CleanPrintf " %-10s${temp_heatmap}%-20s${reset_text}" "CPU Temp:" "${temperature}"
     CleanPrintf " %-10s${cpu_load_1_heatmap}%-4s${reset_text}, ${cpu_load_5_heatmap}%-4s${reset_text}, ${cpu_load_15_heatmap}%-4s${reset_text}\e[0K\\n" "CPU Load:" "${cpu_load[0]}" "${cpu_load[1]}" "${cpu_load[2]}"
-
-    # Memory and CPU bar
-    CleanPrintf " %-10s[${memory_heatmap}%-10s${reset_text}] %-6s %-10s[${cpu_load_1_heatmap}%-10s${reset_text}] %-5s" "Memory:" "${memory_bar}" "${memory_percent}%" "CPU Load:" "${cpu_bar}" "${cpu_percent}%"
+    CleanPrintf " %-10s[${memory_heatmap}%-10s${reset_text}]%5.1f%%  %-10s[${cpu_load_1_heatmap}%-10s${reset_text}]%5.1f%%" "Memory:" "${memory_bar}" "${memory_percent}" "CPU Load:" "${cpu_bar}" "${cpu_percent}"
   else
     CleanEcho "${bold_text}SYSTEM =========================================================================${reset_text}"
-    # Uptime and memory
-    CleanPrintf " %-10s%-39s %-10s[${memory_heatmap}%-10s${reset_text}] %-6s\\n" "Uptime:" "${system_uptime}" "Memory:" "${memory_bar}" "${memory_percent}%"
-
-    # CPU temp, load, percentage
-    CleanPrintf " %-10s${temp_heatmap}%-10s${reset_text} %-10s${cpu_load_1_heatmap}%-4s${reset_text}, ${cpu_load_5_heatmap}%-4s${reset_text}, ${cpu_load_15_heatmap}%-7s${reset_text} %-10s[${memory_heatmap}%-10s${reset_text}] %-6s" "CPU Temp:" "${temperature}" "CPU Load:" "${cpu_load[0]}" "${cpu_load[1]}" "${cpu_load[2]}" "CPU Load:" "${cpu_bar}" "${cpu_percent}%"
+    CleanPrintf " %-10s%-39s %-10s[${memory_heatmap}%-10s${reset_text}]%5.1f%%\e[0K\\n" "Uptime:" "${system_uptime}" "Memory:" "${memory_bar}" "${memory_percent}"
+    CleanPrintf " %-10s${temp_heatmap}%-10s${reset_text} %-10s${cpu_load_1_heatmap}%-4s${reset_text}, ${cpu_load_5_heatmap}%-4s${reset_text}, ${cpu_load_15_heatmap}%-7s${reset_text} %-10s[${cpu_load_1_heatmap}%-10s${reset_text}]%5.1f%%" "CPU Temp:" "${temperature}" "CPU Load:" "${cpu_load[0]}" "${cpu_load[1]}" "${cpu_load[2]}" "CPU Load:" "${cpu_bar}" "${cpu_percent}"
   fi
 }
 
@@ -872,7 +878,7 @@ CheckConnectivity() {
       elif [ "$1" = "mini" ]; then
         echo "Attempt ${connection_attempts} passed."
       else
-        echo "  - Attempt ${connection_attempts} passed...                                     "
+        echo "  - Attempt ${connection_attempts} passed..."
       fi
 
       connectivity="true"
@@ -887,9 +893,9 @@ CheckConnectivity() {
         if [ "$1" = "pico" ] || [ "$1" = "nano" ] || [ "$1" = "micro" ]; then
           echo -ne "Attempt #${connection_attempts} failed...\\r"
         elif [ "$1" = "mini" ]; then
-          echo -ne "- Attempt ${connection_attempts} failed, wait ${inner_wait_timer}  \\r"
+          echo -ne "- Attempt ${connection_attempts} failed, wait ${inner_wait_timer}\\r"
         else
-          echo -ne "  - Attempt ${connection_attempts} failed... waiting ${inner_wait_timer} seconds...  \\r"
+          echo -ne "  - Attempt ${connection_attempts} failed... waiting ${inner_wait_timer} seconds...\\r"
         fi
         sleep 1
         inner_wait_timer=$((inner_wait_timer-1))
@@ -939,12 +945,12 @@ StartupRoutine(){
     # Get PID of PADD
     pid=$$
     echo -ne " [■·········]  10%\\r"
-    echo ${pid} > ./PADD.pid
+    echo ${pid} > ${file_padd_pid}
 
     # Check for updates
     echo -ne " [■■········]  20%\\r"
-    if [ -e "piHoleVersion" ]; then
-      rm -f piHoleVersion
+    if [ -e "${file_piHoleVersion}" ]; then
+      rm -f ${file_piHoleVersion}
       echo -ne " [■■■·······]  30%\\r"
     else
       echo -ne " [■■■·······]  30%\\r"
@@ -974,13 +980,13 @@ StartupRoutine(){
     # Get PID of PADD
     pid=$$
     echo "- Writing PID (${pid}) to file."
-    echo ${pid} > ./PADD.pid
+    echo ${pid} > ${file_padd_pid}
 
     # Check for updates
     echo "- Checking for version file."
-    if [ -e "piHoleVersion" ]; then
+    if [ -e "${file_piHoleVersion}" ]; then
       echo "  - Found and deleted."
-      rm -f piHoleVersion
+      rm -f ${file_piHoleVersion}
     else
       echo "  - Not found."
     fi
@@ -1010,15 +1016,15 @@ StartupRoutine(){
     # Get PID of PADD
     pid=$$
     echo "- Writing PID (${pid}) to file..."
-    echo ${pid} > ./PADD.pid
+    echo ${pid} > ${file_padd_pid}
 
     # Check for updates
     echo "- Checking for PADD version file..."
-    if [ -e "piHoleVersion" ]; then
+    if [ -e "${file_piHoleVersion}" ]; then
       echo "  - PADD version file found... deleting."
-      rm -f piHoleVersion
+      rm -f ${file_piHoleVersion}
     else
-      echo "  - PADD version file not found."
+      echo "  - PADD version file not found..."
     fi
 
     # Get our information for the first time
@@ -1038,18 +1044,27 @@ StartupRoutine(){
     echo "  - $version_status"
   fi
 
-  printf "%s" "- Starting in "
+  if [ "$1" = "pico" ] || [ "$1" = "nano" ] || [ "$1" = "micro" ]; then
+    printf "%s" "Starting in "
+  else
+    printf "%s" "- Starting in "
+  fi
 
   for i in 3 2 1
   do
-    printf "%s..." "$i"
+    if [ "$1" = "pico" ]; then
+      printf "%s." "$i"
+    elif [ "$1" = "nano" ]; then
+      printf "%s.." "$i"
+    else
+      printf "%s..." "$i"
+    fi
     sleep 1
   done
 }
 
 NormalPADD() {
   for (( ; ; )); do
-
     console_width=$(tput cols)
     console_height=$(tput lines)
 
