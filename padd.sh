@@ -108,7 +108,7 @@ mini_text_retro="${dim_text}${cyan_text}m${magenta_text}i${red_text}n${yellow_te
 padd_logo_1="${bold_text}${green_text} __      __  __   ${reset_text}"
 padd_logo_2="${bold_text}${green_text}|__) /\\ |  \\|  \\  ${reset_text}"
 padd_logo_3="${bold_text}${green_text}|   /--\\|__/|__/  ${reset_text}"
-padd_logo_retro_1="${bold_text} ${yellow_text}_${green_text}_      ${blue_text}_   ${yellow_text}_${green_text}_   ${reset_text}"
+padd_logo_retro_1="${bold_text} ${yellow_text}_${green_text}_      ${blue_text}_${magenta_text}_  ${yellow_text}_${green_text}_   ${reset_text}"
 padd_logo_retro_2="${bold_text}${yellow_text}|${green_text}_${blue_text}_${cyan_text}) ${red_text}/${yellow_text}\\ ${blue_text}|  ${red_text}\\${yellow_text}|  ${cyan_text}\\  ${reset_text}"
 padd_logo_retro_3="${bold_text}${green_text}|   ${red_text}/${yellow_text}-${green_text}-${blue_text}\\${cyan_text}|${magenta_text}_${red_text}_${yellow_text}/${green_text}|${blue_text}_${cyan_text}_${magenta_text}/  ${reset_text}"
 
@@ -507,7 +507,7 @@ GetVersionInformation() {
     fi
 
     # PADD version information...
-    padd_version_latest=$(curl -sI https://github.com/jpmck/PADD/releases/latest | awk -F '/' '/location/ {print $NF}' | tr -d '\r\n[:alpha:]')
+    padd_version_latest=$(curl -sI https://github.com/marco-van-malsen/PADD/releases/latest | awk -F '/' '/location/ {print $NF}' | tr -d '\r\n[:alpha:]')
 
     # is PADD up-to-date?
     if [[ "${padd_version}" != "${padd_version_latest}" ]]; then
@@ -662,7 +662,7 @@ PrintNetworkInformation() {
     CleanPrintf " %-10s%-19s %-10s%-29s\e[0K\\n" "IPv4 Adr:" "${IPV4_ADDRESS}" "IPv6 Adr:" "${IPV6_ADDRESS}"
     CleanEcho "DNS ============================================================================"
     CleanPrintf " %-10s%-39s\e[0K\\n" "Servers:" "${dns_information}"
-    CleanPrintf " %-10s${dnssec_heatmap}%-19s${reset_text} %-20s${conditional_forwarding_heatmap}%-9s${reset_text}\e[0K\\n" "DNSSEC:" "${dnssec_status}" "Conditional Fwding:" "${conditional_forwarding_status}"
+    CleanPrintf " %-10s${dnssec_heatmap}%-19s${reset_text} %-10s${conditional_forwarding_heatmap}%-9s${reset_text}\e[0K\\n" "DNSSEC:" "${dnssec_status}" "Cond Fwd:" "${conditional_forwarding_status}"
 
     CleanEcho "DHCP ==========================================================================="
     CleanPrintf " %-10s${dhcp_heatmap}%-19s${reset_text} %-10s${dhcp_ipv6_heatmap}%-9s${reset_text}\e[0K\\n" "DHCP:" "${dhcp_status}" "IPv6 Spt:" "${dhcp_ipv6_status}"
